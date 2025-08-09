@@ -1,5 +1,5 @@
 import os
-from . import APP_NAME, FOLDER_IMAGE_NAME, VERSION
+from app import APP_NAME, FOLDER_IMAGE_NAME, VERSION
 from app.image_loader import ail_loadImgAsGrayscale, ail_printGrayscale_Preview
 from app.utils import sysUtil_getImageList
 def am_runImageLoader(immagePath):
