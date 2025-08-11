@@ -43,6 +43,53 @@ bp-insight-ai/
 
 ### **Step 1 – Load & Grayscale**
 - **Goal:** Read `.png/.jpg` files and convert them into a grayscale matrix (0–255).
+- **Formula**
+# RGB to Grayscale Conversion Example
+
+## 1. Original Image
+Suppose you have a 3×3 pixel image with original RGB colors as follows:
+
+| Pixel | R   | G   | B   |
+|-------|-----|-----|-----|
+| P1    | 255 | 0   | 0   |
+| P2    | 0   | 255 | 0   |
+| P3    | 0   | 0   | 255 |
+| P4    | 255 | 255 | 255 |
+| P5    | 0   | 0   | 0   |
+| P6    | 128 | 128 | 128 |
+| P7    | 200 | 100 | 50  |
+| P8    | 50  | 50  | 200 |
+| P9    | 100 | 200 | 100 |
+
+---
+
+## 2. Convert RGB → Grayscale
+**Formula**
+```
+Gray = 0.299*R + 0.587*G + 0.114*B   (luminance formula)
+```
+
+**Examples:**
+- **P1** (Red) → Gray = `0.299×255 + 0.587×0 + 0.114×0` ≈ **76**
+- **P4** (White) → Gray ≈ **255**
+- **P5** (Black) → Gray = **0**
+- **P6** (Gray 128,128,128) → Gray ≈ **128**
+
+---
+
+## 3. Result Matrix – `list[list[int]]`
+After converting all pixels to grayscale values (0–255), the 3×3 image becomes:
+
+```python
+[
+  [ 76, 150,  29 ],  # Row 1
+  [255,   0, 128 ],  # Row 2
+  [144,  71, 170 ]   # Row 3
+]
+```
+- Each **row** in the list = one row of pixels in the image.
+- Each **integer** = pixel brightness (**0 = black** → **255 = white**). 
+
 - **Process:**
   - Use `PIL.Image` or manually read pixels.
   - Convert to `'L'` mode (grayscale).
@@ -53,12 +100,57 @@ bp-insight-ai/
 
 ### **Step 2 – Binarization**
 - **Goal:** Convert the grayscale image into a binary image (0 or 1).
+    After the image has been converted to **grayscale** (0–255), the **binarization** step aims to transform it into a **binary image** with only **two values**:
+    - **0** → black (pixel removed, not part of the text)
+    - **1** → white (pixel kept, part of the background)
+    *(Or reversed depending on the system: 0 for background, 1 for text)*
+
+    This makes it easier for OCR algorithms to detect the shape of characters because they only have to work with two states: "present" or "absent" pixel.
+
+---
 - **Method:**
   - **Fixed threshold** (default 128).
+    - Choose a fixed threshold, e.g., **128**.
+    - Formula:
+      ```
+      pixel_bin = 1 if pixel_gray ≥ 128
+                  0 if pixel_gray < 128
+      ```
+    - **Pros:** fast, easy to implement.
+    - **Cons:** if the image has uneven lighting, a fixed threshold can cause detail loss or background merging.  
   - **Otsu's threshold** (automatically determine optimal threshold).
+    - An algorithm that automatically finds the **best threshold** to separate background and text based on the **histogram distribution** of the image.
+    - Principle: find the threshold value where **the variance between two pixel groups (black and white)** is maximized → best separation of text/background.
+    - **Pros:** automatically adapts to various lighting conditions.
+    - **Cons:** slightly more computationally complex than fixed threshold.
 - **Output:** `list[list[int]]` containing only `{0, 1}`.
-- **Testing:** Ensure image dimensions are preserved and all values belong to `{0, 1}`.
+    The result is a **binary matrix** `list[list[int]]` containing only **0 and 1**.
 
+    Example – from a 3×3 grayscale image:
+    ```python
+    [
+    [ 76, 150,  29 ],
+    [255,   0, 128 ],
+    [144,  71, 170 ]
+    ]
+    ```
+    If threshold = 128, the binary image will be:
+    ```python
+    [
+    [ 0, 1, 0 ],  # Row 1
+    [ 1, 0, 1 ],  # Row 2
+    [ 1, 0, 1 ]   # Row 3
+    ]
+    ```
+    - **0**: pixel less than threshold (black)
+    - **1**: pixel greater than or equal to threshold (white)
+
+    ---
+
+- **Testing:** Ensure image dimensions are preserved and all values belong to `{0, 1}`.
+  - Ensure the **binary image size** matches the grayscale image size.
+  - All pixel values ∈ {0, 1}.
+  - Visual check to confirm text is preserved clearly.
 ---
 
 ### **Step 3 – Region Detection**
