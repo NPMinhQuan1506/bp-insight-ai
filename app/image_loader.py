@@ -1,7 +1,7 @@
 from PIL import Image
 
 
-def ail_loadImgAsGrayscale(img_path: str) -> list[list[int]]:
+def ail_loadImgAsGrayscale(img_path):
     """
     Load an image file and convert it to a 2D grayscale matrix.
 
@@ -33,7 +33,7 @@ def ail_loadImgAsGrayscale(img_path: str) -> list[list[int]]:
     return gray_matrix
 
 
-def ail_printGrayscalePreview(gray_matrix: list[list[int]], limit: int = 10) -> None:
+def ail_printGrayscalePreview(gray_matrix, limit=10):
     """
     Print a preview of the grayscale matrix.
 

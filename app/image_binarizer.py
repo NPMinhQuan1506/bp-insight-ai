@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 
-def aib_binarizeWithFixedThreshold(
-    grayscale_matrix: list[list[int]], threshold: int = 128
-) -> list[list[int]]:
+def aib_binarizeWithFixedThreshold(grayscale_matrix, threshold=128):
     if not grayscale_matrix:
         return []
 
@@ -22,7 +20,7 @@ def aib_binarizeWithFixedThreshold(
     return binary_matrix
 
 
-def aib_binarizeWithOtsuThreshold(grayscale_matrix: list[list[int]]) -> list[list[int]]:
+def aib_binarizeWithOtsuThreshold(grayscale_matrix):
     if not grayscale_matrix:
         return []
 
