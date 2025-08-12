@@ -1,30 +1,38 @@
-from app.image_binarizer import aib_binarized, aib_binarized_otsu
+from app.image_binarizer import (
+    aib_binarizeWithFixedThreshold,
+    aib_binarizeWithOtsuThreshold,
+)
 
 
 def test_binarized_fixed_threshold_basic():
-    g = [
+    gray = [
         [0, 64, 127, 128, 200, 255],
         [10, 120, 127, 129, 180, 254],
     ]
 
-    b = aib_binarized(g, threshold=128)
+    binary = aib_binarizeWithFixedThreshold(gray, threshold=128)
 
-    assert b == [
+    expected = [
         [0, 0, 0, 1, 1, 1],
         [0, 0, 0, 1, 1, 1],
     ]
+    assert binary == expected
 
 
 def test_binarized_empty_returns_empty():
-    assert aib_binarized([], threshold=128) == []
+    empty_result = aib_binarizeWithFixedThreshold([], threshold=128)
+    assert empty_result == []
 
 
 def test_binarize_otsu_shape_and_range():
-    g = [
+    gray = [
         [10, 10, 10, 10, 200, 200, 200, 200],
         [10, 10, 10, 10, 200, 200, 200, 200],
     ]
-    b = aib_binarized_otsu(g)
-    assert len(b) == len(g)
-    assert len(b[0]) == len(g[0])
-    assert all(px in (0, 1) for row in b for px in row)
+    binary = aib_binarizeWithOtsuThreshold(gray)
+
+    assert len(binary) == len(gray)
+    assert len(binary[0]) == len(gray[0])
+
+    all_pixels_valid = all(pixel in (0, 1) for row in binary for pixel in row)
+    assert all_pixels_valid

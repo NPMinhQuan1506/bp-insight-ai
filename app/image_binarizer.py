@@ -1,54 +1,68 @@
 from __future__ import annotations
 
 
-def aib_binarized(grayScale_Matrix, threshold=128):
-    if not grayScale_Matrix:
+def aib_binarizeWithFixedThreshold(
+    grayscale_matrix: list[list[int]], threshold: int = 128
+) -> list[list[int]]:
+    if not grayscale_matrix:
         return []
 
-    height = len(grayScale_Matrix)
-    width = len(grayScale_Matrix[0])
+    rows = len(grayscale_matrix)
+    cols = len(grayscale_matrix[0])
 
-    binary = []
-    for y in range(height):
-        row = []
-        for x in range(width):
-            px = grayScale_Matrix[y][x]
-            row.append(1 if px >= threshold else 0)
-        binary.append(row)
+    binary_matrix = []
+    for i in range(rows):
+        new_row = []
+        for j in range(cols):
+            pixel = grayscale_matrix[i][j]
+            binary_pixel = 1 if pixel >= threshold else 0
+            new_row.append(binary_pixel)
+        binary_matrix.append(new_row)
 
-    return binary
+    return binary_matrix
 
 
-def aib_binarized_otsu(grayScale_Matrix):
-    if not grayScale_Matrix:
+def aib_binarizeWithOtsuThreshold(grayscale_matrix: list[list[int]]) -> list[list[int]]:
+    if not grayscale_matrix:
         return []
 
-    hist = [0] * 256
-    total = 0
-    for row in grayScale_Matrix:
-        for px in row:
-            hist[px] += 1
-            total += 1
+    histogram = [0] * 256
+    total_pixels = 0
 
-    sumTotal = sum(i * hist[i] for i in range(256))
-    sum_b = 0
-    w_b = 0
-    maxVar = -1.0
-    best_t = 0
+    for row in grayscale_matrix:
+        for pixel in row:
+            histogram[pixel] += 1
+            total_pixels += 1
 
-    for t in range(256):
-        w_b += hist[t]
-        if w_b == 0:
+    total_sum = 0
+    for i in range(256):
+        total_sum += i * histogram[i]
+
+    bg_pixels = 0
+    bg_sum = 0
+    max_variance = -1.0
+    best_threshold = 0
+
+    for threshold in range(256):
+        bg_pixels += histogram[threshold]
+        bg_sum += threshold * histogram[threshold]
+
+        if bg_pixels == 0:
             continue
-        w_f = total - w_b
-        if w_f == 0:
+
+        fg_pixels = total_pixels - bg_pixels
+
+        if fg_pixels == 0:
             break
 
-        sum_b += t * hist[t]
-        m_b = sum_b / w_b
-        m_f = (sumTotal - sum_b) / w_f
-        varBetween = w_b * w_f * (m_b - m_f) ** 2
-        if varBetween > maxVar:
-            maxVar = varBetween
-            best_t = t
-    return aib_binarized(grayScale_Matrix, threshold=best_t)
+        bg_mean = bg_sum / bg_pixels
+        fg_sum = total_sum - bg_sum
+        fg_mean = fg_sum / fg_pixels
+
+        variance = bg_pixels * fg_pixels * (bg_mean - fg_mean) ** 2
+
+        if variance > max_variance:
+            max_variance = variance
+            best_threshold = threshold
+
+    return aib_binarizeWithFixedThreshold(grayscale_matrix, threshold=best_threshold)
