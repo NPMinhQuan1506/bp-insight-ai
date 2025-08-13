@@ -1,8 +1,39 @@
 import os
+import itertools
 from app import APP_NAME, FOLDER_IMAGE_NAME, VERSION
-from app.image_binarizer import aib_binarizeWithFixedThreshold
+from app.image_binarizer import (
+    aib_binarizeWithFixedThreshold,
+    aib_binarizeWithOtsuThreshold,
+)
 from app.image_loader import ail_loadImgAsGrayscale, ail_printGrayscalePreview
+from app.image_denoiser import aid_applyGaussianBlur
 from app.utils import sysUtil_getImageList, sysUtil_printBinaryPreview
+
+
+def am_autoChooseParams(grayScale):
+    kernel_sizes = [3, 5, 7]
+    sigmas = [round(x, 2) for x in [0.8, 1.0, 1.2, 1.5, 2.0]]
+    best_score = -1
+    best_params = (3, 1.0)
+    best_binary = None
+
+    for kernel, sigma in itertools.product(kernel_sizes, sigmas):
+        try:
+            denoised = aid_applyGaussianBlur(grayScale, kernelSize=kernel, sigma=sigma)
+            binary = aib_binarizeWithOtsuThreshold(denoised)
+            flat = [px for row in binary for px in row]
+            if not flat:
+                continue
+            mean = sum(flat) / len(flat)
+            score = 1 - abs(mean - 0.5)
+            if score > best_score:
+                best_score = score
+                best_params = (kernel, sigma)
+                best_binary = binary
+        except Exception:
+            continue
+
+    return best_params, best_binary
 
 
 def am_runImageLoader(imagePath):
@@ -13,10 +44,10 @@ def am_runImageLoader(imagePath):
     else:
         print("Image loaded successfully")
         ail_printGrayscalePreview(grayscale, limit=20)
+        (kernel, sigma), binary = am_autoChooseParams(grayscale)
+        print(f"Auto-selected GaussianBlur: kernelSize={kernel}, sigma={sigma}")
 
-        print("\n[Fixed threshold = 128]")
-        b_fixed = aib_binarizeWithFixedThreshold(grayscale, threshold=128)
-        sysUtil_printBinaryPreview(b_fixed, limit=60, rows=10)
+        sysUtil_printBinaryPreview(binary, limit=60, rows=10)
 
 
 def main():
