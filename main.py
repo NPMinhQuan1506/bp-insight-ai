@@ -5,6 +5,7 @@ from app.image_binarizer import (
     aib_binarizeWithFixedThreshold,
     aib_binarizeWithOtsuThreshold,
 )
+from app.image_region_detector import adr_detectRegions
 from app.image_loader import ail_loadImgAsGrayscale, ail_printGrayscalePreview
 from app.image_denoiser import aid_applyGaussianBlur
 from app.utils import sysUtil_getImageList, sysUtil_printBinaryPreview
@@ -48,6 +49,10 @@ def am_runImageLoader(imagePath):
         print(f"Auto-selected GaussianBlur: kernelSize={kernel}, sigma={sigma}")
 
         sysUtil_printBinaryPreview(binary, limit=60, rows=10)
+        regions = adr_detectRegions(binary)
+        print(f"Detected {len(regions)} regions (bounding boxes):")
+        for idx, (x, y, w, h) in enumerate(regions):
+            print(f"  Region {idx+1}: x={x}, y={y}, w={w}, h={h}")
 
 
 def main():
