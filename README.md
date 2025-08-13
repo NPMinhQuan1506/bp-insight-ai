@@ -1,3 +1,9 @@
+Chắc chắn rồi! Thêm bước khử nhiễu là một cải tiến cực kỳ quan trọng và thực tế cho quy trình xử lý ảnh. Nó sẽ giúp tăng độ chính xác của các bước sau, đặc biệt là bước nhị phân hóa Otsu.
+
+Dưới đây là phiên bản tài liệu của bạn đã được cập nhật, bao gồm **Step 1.5 - Denoising** được tích hợp một cách liền mạch vào cấu trúc hiện có.
+
+---
+
 # 🩺 BP Insight AI
 
 BP Insight AI is a lightweight, modular Python application designed to automatically extract blood pressure readings from images of digital monitors (e.g. OMRON, Microlife) using OCR, and diagnose hypertension risk based on standard WHO thresholds.
@@ -19,7 +25,8 @@ bp-insight-ai/
 ├── app/
 │   ├── __init__.py                  # Define APP_NAME, VERSION, FOLDER_IMAGE_NAME
 │   ├── image_loader.py              # Step 1: Load image & convert to grayscale
-│   ├── binarizer.py                  # Step 2: Convert grayscale → binary (0/1)
+│   ├── **denoiser.py**                  # **Step 1.5: Apply denoising filter (e.g., Gaussian Blur)**
+│   ├── binarizer.py                 # Step 2: Convert grayscale → binary (0/1)
 │   ├── region_detector.py           # Step 3: Detect digit regions (Connected Components)
 │   ├── digit_recognizer.py          # Step 4: Recognize digits (custom template matching)
 │   ├── utils.py                     # Common utilities (list images, ASCII preview, etc.)
@@ -31,6 +38,7 @@ bp-insight-ai/
 │
 ├── tests/
 │   ├── test_image_loader.py         # Unit tests for Step 1
+│   ├── **test_denoiser.py**             # **Unit tests for Step 1.5**
 │   ├── test_binarizer.py            # Unit tests for Step 2
 │   ├── test_region_detector.py      # Unit tests for Step 3
 │   ├── test_digit_recognizer.py     # Unit tests for Step 4
@@ -43,53 +51,6 @@ bp-insight-ai/
 
 ### **Step 1 – Load & Grayscale**
 - **Goal:** Read `.png/.jpg` files and convert them into a grayscale matrix (0–255).
-- **Formula**
-# RGB to Grayscale Conversion Example
-
-## 1. Original Image
-Suppose you have a 3×3 pixel image with original RGB colors as follows:
-
-| Pixel | R   | G   | B   |
-|-------|-----|-----|-----|
-| P1    | 255 | 0   | 0   |
-| P2    | 0   | 255 | 0   |
-| P3    | 0   | 0   | 255 |
-| P4    | 255 | 255 | 255 |
-| P5    | 0   | 0   | 0   |
-| P6    | 128 | 128 | 128 |
-| P7    | 200 | 100 | 50  |
-| P8    | 50  | 50  | 200 |
-| P9    | 100 | 200 | 100 |
-
----
-
-## 2. Convert RGB → Grayscale
-**Formula**
-```
-Gray = 0.299*R + 0.587*G + 0.114*B   (luminance formula)
-```
-
-**Examples:**
-- **P1** (Red) → Gray = `0.299×255 + 0.587×0 + 0.114×0` ≈ **76**
-- **P4** (White) → Gray ≈ **255**
-- **P5** (Black) → Gray = **0**
-- **P6** (Gray 128,128,128) → Gray ≈ **128**
-
----
-
-## 3. Result Matrix – `list[list[int]]`
-After converting all pixels to grayscale values (0–255), the 3×3 image becomes:
-
-```python
-[
-  [ 76, 150,  29 ],  # Row 1
-  [255,   0, 128 ],  # Row 2
-  [144,  71, 170 ]   # Row 3
-]
-```
-- Each **row** in the list = one row of pixels in the image.
-- Each **integer** = pixel brightness (**0 = black** → **255 = white**). 
-
 - **Process:**
   - Use `PIL.Image` or manually read pixels.
   - Convert to `'L'` mode (grayscale).
@@ -98,59 +59,25 @@ After converting all pixels to grayscale values (0–255), the 3×3 image become
 
 ---
 
-### **Step 2 – Binarization**
-- **Goal:** Convert the grayscale image into a binary image (0 or 1).
-    After the image has been converted to **grayscale** (0–255), the **binarization** step aims to transform it into a **binary image** with only **two values**:
-    - **0** → black (pixel removed, not part of the text)
-    - **1** → white (pixel kept, part of the background)
-    *(Or reversed depending on the system: 0 for background, 1 for text)*
-
-    This makes it easier for OCR algorithms to detect the shape of characters because they only have to work with two states: "present" or "absent" pixel.
+### **Step 1.5 – Denoising (Optional but Recommended)**
+- **Goal:** Reduce random pixel noise (e.g., sensor noise, compression artifacts) from the grayscale image. This crucial step "cleans" the image's histogram, allowing Otsu's algorithm to find a more accurate and stable threshold in the next step.
+- **Method:**
+  - **Gaussian Blur:** This is the most common and effective method.
+  - **Principle:** It replaces each pixel's value with a weighted average of its surrounding pixels. Pixels closer to the center have more influence, creating a natural-looking blur that smooths out noise.
+  - A small kernel size (e.g., 3x3 or 5x5) is usually sufficient to reduce noise without blurring the digit shapes too much.
+- **Output:** A "smoother" grayscale matrix `list[list[int]]` with noise reduced.
+- **Testing:** Verify that image dimensions are preserved. A visual check is key: the output image should appear slightly blurrier than the grayscale input, with "salt-and-pepper" noise spots blended into their surroundings.
 
 ---
+
+### **Step 2 – Binarization**
+- **Goal:** Convert the (denoised) grayscale image into a binary image (0 or 1). This simplifies the image so that algorithms only need to distinguish between "text" and "background".
 - **Method:**
   - **Fixed threshold** (default 128).
-    - Choose a fixed threshold, e.g., **128**.
-    - Formula:
-      ```
-      pixel_bin = 1 if pixel_gray ≥ 128
-                  0 if pixel_gray < 128
-      ```
-    - **Pros:** fast, easy to implement.
-    - **Cons:** if the image has uneven lighting, a fixed threshold can cause detail loss or background merging.  
-  - **Otsu's threshold** (automatically determine optimal threshold).
-    - An algorithm that automatically finds the **best threshold** to separate background and text based on the **histogram distribution** of the image.
-    - Principle: find the threshold value where **the variance between two pixel groups (black and white)** is maximized → best separation of text/background.
-    - **Pros:** automatically adapts to various lighting conditions.
-    - **Cons:** slightly more computationally complex than fixed threshold.
+  - **Otsu's threshold** (automatically determine optimal threshold). This method benefits greatly from the previous denoising step.
 - **Output:** `list[list[int]]` containing only `{0, 1}`.
-    The result is a **binary matrix** `list[list[int]]` containing only **0 and 1**.
-
-    Example – from a 3×3 grayscale image:
-    ```python
-    [
-    [ 76, 150,  29 ],
-    [255,   0, 128 ],
-    [144,  71, 170 ]
-    ]
-    ```
-    If threshold = 128, the binary image will be:
-    ```python
-    [
-    [ 0, 1, 0 ],  # Row 1
-    [ 1, 0, 1 ],  # Row 2
-    [ 1, 0, 1 ]   # Row 3
-    ]
-    ```
-    - **0**: pixel less than threshold (black)
-    - **1**: pixel greater than or equal to threshold (white)
-
-    ---
-
 - **Testing:** Ensure image dimensions are preserved and all values belong to `{0, 1}`.
-  - Ensure the **binary image size** matches the grayscale image size.
-  - All pixel values ∈ {0, 1}.
-  - Visual check to confirm text is preserved clearly.
+
 ---
 
 ### **Step 3 – Region Detection**
@@ -187,8 +114,8 @@ After converting all pixels to grayscale values (0–255), the 3×3 image become
 ## 📌 Main Flow (`main.py`)
 1. Show menu to select an image from `input_images/`.
 2. **Step 1:** Load image → preview grayscale.
-3. **Step 2:** Binarize → preview binary.
-4. **Step 3:** Region detection → draw bounding boxes (ASCII or preview).
-5. **Step 4:** Recognize digits → print results.
-6. **Step 5:** Blood pressure evaluation → print alert.
-
+3. **Step 1.5:** Denoise image → preview denoised image.
+4. **Step 2:** Binarize → preview binary.
+5. **Step 3:** Region detection → draw bounding boxes (ASCII or preview).
+6. **Step 4:** Recognize digits → print results.
+7. **Step 5:** Blood pressure evaluation → print alert.
