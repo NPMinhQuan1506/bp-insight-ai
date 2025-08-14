@@ -11,7 +11,7 @@ def aid_applyGaussianBlur(grayScale_Matrix, kernelSize=3, sigma=1.0):
     kernel = []
     kernelSum = 0.0
     radius = kernelSize // 2
-
+    print("Formula: G(x,y) = (1/(2πσ²)) * e^(-(x²+y²)/(2σ²))")
     for i in range(-radius, radius + 1):
         row = []
         for j in range(-radius, radius + 1):
